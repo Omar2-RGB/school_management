@@ -9,7 +9,7 @@ void main() async {
 
   await Supabase.initialize(
     url: 'https://kxujxjsyvdqbxcefytrl.supabase.co',
-    publishableKey: 'sb_publishable_ZuumFuds79JhyS8tfwjNCQ_oG2U9-rW',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt4dWp4anN5dmRxYnhjZWZ5dHJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE5ODE3MDcsImV4cCI6MjA5NzU1NzcwN30.OgjtRqJWX_6TbXSj4v_eLUUCG-6FVsHiLqodeF_sjCw',
   );
 
   runApp(const SchoolManagementApp());
