@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pdf/pdf.dart'; // ✅ أضفناه لدعم ألوان الـ PDF في SchoolInfo
 import '../../core/theme/app_colors.dart';
 import '../../data/local_database/database_helper.dart';
-import '../../services/pdf_service.dart'; // ✅ استيراد خدمة PDF
+import '../../services/pdf_service.dart';
 
 class StudentProfileScreen extends StatefulWidget {
   final int studentId;
@@ -41,7 +41,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       final allStudents = await DatabaseHelper.getAllStudents();
       final student = allStudents.firstWhere(
         (s) => s['id'] == widget.studentId,
-        orElse: () => {},
+        orElse: () => <String, dynamic>{},
       );
 
       if (student.isEmpty) {
@@ -80,7 +80,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   double _getTotalScore() {
     double total = 0;
     for (var grade in _grades) {
-      total += grade['score'] as double? ?? 0;
+      total += (grade['score'] as num?)?.toDouble() ?? 0.0;
     }
     return total;
   }
@@ -96,9 +96,19 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   double _getTotalPayments() {
     double total = 0;
     for (var payment in _payments) {
-      total += payment['amount'] as double? ?? 0;
+      total += (payment['amount'] as num?)?.toDouble() ?? 0.0;
     }
     return total;
+  }
+
+  // 💡 دالة ذكية لتوليد كائن المدرسة ديناميكياً للطباعة
+  SchoolInfo _getCurrentSchoolInfo() {
+    return SchoolInfo(
+      name: _student?['school_name'] ?? 'مدرسة آفاق العلم النموذجية',
+      address: _student?['address'] ?? 'الإدارة العامة',
+      phone: '0790000000',
+      primaryColor: PdfColors.blue800, // لون رسمي رزين
+    );
   }
 
   @override
@@ -113,9 +123,10 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             onPressed: () async {
               if (_student != null && _grades.isNotEmpty) {
                 await PdfService.printStudentGradesReport(
+                  school: _getCurrentSchoolInfo(), // 💡 حقن الكائن هنا
                   studentName: _student!['name'] ?? 'بدون اسم',
                   className: _student!['classes']?['name'] ?? 'بدون صف',
-                  schoolId: _student!['school_id'] ?? '',
+                  schoolId: _student!['school_id']?.toString() ?? '',
                   grades: _grades,
                 );
               } else {
@@ -132,6 +143,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             onPressed: () async {
               if (_student != null && _attendance.isNotEmpty) {
                 await PdfService.printStudentAttendanceReport(
+                  school: _getCurrentSchoolInfo(), // 💡 وحقن الكائن هنا
                   studentName: _student!['name'] ?? 'بدون اسم',
                   className: _student!['classes']?['name'] ?? 'بدون صف',
                   attendance: _attendance,
@@ -150,6 +162,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             onPressed: () async {
               if (_student != null && _payments.isNotEmpty) {
                 await PdfService.printStudentPaymentsReport(
+                  school: _getCurrentSchoolInfo(), // 💡 وحقن الكائن هنا
                   studentName: _student!['name'] ?? 'بدون اسم',
                   className: _student!['classes']?['name'] ?? 'بدون صف',
                   payments: _payments,
@@ -176,7 +189,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.error_outline, size: 60, color: AppColors.danger),
+                      const Icon(Icons.error_outline, size: 60, color: AppColors.danger),
                       const SizedBox(height: 16),
                       Text(_errorMessage!, style: const TextStyle(color: AppColors.danger)),
                       const SizedBox(height: 16),
@@ -214,7 +227,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     final name = student['name'] ?? 'بدون اسم';
     final fatherName = student['father_name'] ?? '';
     final familyName = student['father_family_name'] ?? '';
-    final schoolId = student['school_id'] ?? '';
+    final schoolId = student['school_id']?.toString() ?? '';
     final phone = student['phone'] ?? '';
     final parentPhone = student['parent_phone'] ?? '';
     final birthDate = student['birth_date'] ?? '';
@@ -232,13 +245,13 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
         children: [
           CircleAvatar(
             radius: 50,
-            backgroundColor: AppColors.primary.withOpacity(0.1),
+            backgroundColor: AppColors.primary.withValues(alpha: 0.1), // 💡 التحديث القياسي
             backgroundImage: photoUrl != null
                 ? NetworkImage(photoUrl) as ImageProvider
                 : null,
             child: photoUrl == null
-                ? Text(
-                    name.isNotEmpty ? name[0] : 'ط',
+                ? const Text(
+                    'ط',
                     style: TextStyle(fontSize: 30, color: AppColors.primary),
                   )
                 : null,
@@ -255,8 +268,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                 const SizedBox(height: 4),
                 if (fatherName.isNotEmpty || familyName.isNotEmpty)
                   Text(
-                    '${fatherName.isNotEmpty ? fatherName : ''} ${familyName.isNotEmpty ? familyName : ''}',
-                    style: TextStyle(color: AppColors.textMuted),
+                    '$fatherName $familyName'.trim(),
+                    style: const TextStyle(color: AppColors.textMuted),
                   ),
                 const SizedBox(height: 4),
                 Row(
@@ -376,7 +389,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
           ),
           Text(
             title,
-            style: TextStyle(color: AppColors.textMuted, fontSize: 10),
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 10),
           ),
         ],
       ),
@@ -410,7 +423,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                 final grade = _grades[index];
                 final subject = grade['subjects'] as Map<String, dynamic>?;
                 final subjectName = subject?['name'] ?? 'بدون مادة';
-                final score = grade['score'] as double? ?? 0;
+                final score = (grade['score'] as num?)?.toDouble() ?? 0.0;
                 final examType = grade['exam_type'] ?? '';
                 final term = grade['term'] ?? 1;
 
@@ -479,7 +492,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                 final item = _attendance[index];
                 final date = item['date'] ?? '';
                 final status = item['status'] ?? '';
-                final statusName = statusNames[status] ?? status;
+                final statusName = statusNames[status] ?? status.toString();
                 final statusColor = statusColors[status] ?? Colors.grey;
 
                 return ListTile(
@@ -487,7 +500,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                   trailing: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
+                      color: statusColor.withValues(alpha: 0.1), // 💡 التحديث القياسي
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: statusColor),
                     ),
@@ -536,7 +549,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
               itemCount: _payments.length,
               itemBuilder: (context, index) {
                 final payment = _payments[index];
-                final amount = payment['amount'] as double? ?? 0;
+                final amount = (payment['amount'] as num?)?.toDouble() ?? 0.0;
                 final feeType = payment['fee_type'] ?? '';
                 final date = payment['date'] ?? '';
                 final note = payment['note'] ?? '';

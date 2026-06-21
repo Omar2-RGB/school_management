@@ -46,8 +46,260 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen> {
     }
   }
 
+  @override
+  Widget build(BuildContext context) {
+    final filteredSchedules = _selectedClassId != null
+        ? _schedules.where((s) => s['class_id'] == _selectedClassId).toList()
+        : _schedules;
+
+    // ✅ بناء شبكة الجدول
+    List<List<Map<String, dynamic>?>> grid =
+        List.generate(5, (i) => List.filled(8, null));
+
+    for (var s in filteredSchedules) {
+      final day = s['day_of_week'] as int;
+      final period = (s['period'] as int) - 1;
+      if (day >= 0 && day < 5 && period >= 0 && period < 8) {
+        grid[day][period] = s;
+      }
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('جدول الحصص'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadData,
+          ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                // ✅ فلتر الصف (محسّن)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: DropdownButtonFormField<int>(
+                    value: _selectedClassId,
+                    decoration: InputDecoration(
+                      labelText: 'اختر الصف',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(Icons.class_),
+                    ),
+                    items: _classes.map((cls) {
+                      return DropdownMenuItem<int>(
+                        value: cls['id'],
+                        child: Text(cls['name']),
+                      );
+                    }).toList(),
+                    onChanged: (val) => setState(() => _selectedClassId = val),
+                  ),
+                ),
+                
+                const SizedBox(height: 8),
+
+                // ✅ الجدول المحسن
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.vertical,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: AppColors.borderWhite),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Column(
+                            children: [
+                              // ✅ رأس الجدول (الأيام)
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(12),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    // خلية "الفترة"
+                                    Container(
+                                      width: 60,
+                                      padding: const EdgeInsets.all(12),
+                                      child: const Text(
+                                        'الفترة',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                    // الأيام
+                                    ..._days.map((day) => Container(
+                                      width: 100,
+                                      padding: const EdgeInsets.all(12),
+                                      child: Text(
+                                        day,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    )),
+                                  ],
+                                ),
+                              ),
+                              // ✅ صفوف الفترات
+                              ...List.generate(8, (periodIndex) {
+                                final periodNumber = periodIndex + 1;
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      bottom: BorderSide(
+                                        color: AppColors.borderWhite,
+                                        width: periodIndex == 7 ? 0 : 1,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      // رقم الفترة
+                                      Container(
+                                        width: 60,
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.cardColor,
+                                          border: Border(
+                                            right: BorderSide(
+                                              color: AppColors.borderWhite,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'ف$periodNumber',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                      // خلايا الجدول
+                                      ...List.generate(5, (dayIndex) {
+                                        final schedule = grid[dayIndex][periodIndex];
+                                        return Container(
+                                          width: 100,
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: schedule != null
+                                                ? AppColors.primary.withValues(alpha: 0.1)
+                                                : null,
+                                            border: Border(
+                                              right: BorderSide(
+                                                color: AppColors.borderWhite,
+                                              ),
+                                            ),
+                                          ),
+                                          child: schedule != null
+                                              ? GestureDetector(
+                                                  onTap: () {
+                                                    // عرض تفاصيل الحصة
+                                                    _showScheduleDetails(schedule);
+                                                  },
+                                                  child: Column(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Text(
+                                                        schedule['subjects']?['name'] ?? '',
+                                                        style: const TextStyle(
+                                                          fontWeight: FontWeight.bold,
+                                                          fontSize: 12,
+                                                        ),
+                                                        textAlign: TextAlign.center,
+                                                        maxLines: 2,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                        schedule['teachers']?['name'] ?? '',
+                                                        style: const TextStyle(
+                                                          fontSize: 10,
+                                                          color: Colors.grey,
+                                                        ),
+                                                        textAlign: TextAlign.center,
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              : null,
+                                        );
+                                      }),
+                                    ],
+                                  ),
+                                );
+                              }),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addSchedule,
+        backgroundColor: AppColors.primary,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  // ✅ عرض تفاصيل الحصة عند الضغط
+  void _showScheduleDetails(Map<String, dynamic> schedule) {
+    final subject = schedule['subjects']?['name'] ?? 'بدون مادة';
+    final teacher = schedule['teachers']?['name'] ?? 'بدون معلم';
+    final dayIndex = schedule['day_of_week'] as int;
+    final period = schedule['period'] as int;
+    final day = _days[dayIndex];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تفاصيل الحصة'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('📚 المادة: $subject'),
+            const SizedBox(height: 8),
+            Text('👨‍🏫 المعلم: $teacher'),
+            const SizedBox(height: 8),
+            Text('📅 اليوم: $day'),
+            const SizedBox(height: 8),
+            Text('⏰ الفترة: $period'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إغلاق'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ إضافة حصة جديدة
   Future<void> _addSchedule() async {
-    // جلب المعلمين والمواد عند فتح الحوار
     final teachers = await DatabaseHelper.getAllTeachers();
     final subjects = await DatabaseHelper.getAllSubjects();
 
@@ -79,206 +331,6 @@ class _ScheduleManagementScreenState extends State<ScheduleManagementScreen> {
         }
       }
     }
-  }
-
-  Future<void> _deleteSchedule(int id) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تأكيد الحذف'),
-        content: const Text('هل أنت متأكد من حذف هذه الحصة؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('حذف', style: TextStyle(color: AppColors.danger)),
-          ),
-        ],
-      ),
-    );
-    if (confirm != true) return;
-
-    try {
-      await DatabaseHelper.deleteSchedule(id);
-      if (mounted) {
-        _loadData();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✅ تم حذف الحصة'), backgroundColor: AppColors.success),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e'), backgroundColor: AppColors.danger),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final filteredSchedules = _selectedClassId != null
-        ? _schedules.where((s) => s['class_id'] == _selectedClassId).toList()
-        : _schedules;
-
-    // إنشاء مصفوفة 5x8 للجدول
-    List<List<Map<String, dynamic>?>> grid =
-        List.generate(5, (i) => List.filled(8, null));
-
-    for (var s in filteredSchedules) {
-      final day = s['day_of_week'] as int;
-      final period = (s['period'] as int) - 1;
-      if (day >= 0 && day < 5 && period >= 0 && period < 8) {
-        grid[day][period] = s;
-      }
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('جدول الحصص'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: DropdownButtonFormField<int>(
-                    value: _selectedClassId,
-                    decoration: const InputDecoration(
-                      labelText: 'الصف',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: _classes.map((cls) {
-                      return DropdownMenuItem<int>(
-                        value: cls['id'],
-                        child: Text(cls['name']),
-                      );
-                    }).toList(),
-                    onChanged: (val) => setState(() => _selectedClassId = val),
-                  ),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.vertical,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Table(
-                          border: TableBorder.all(color: AppColors.borderWhite),
-                          columnWidths: const {
-                            0: FixedColumnWidth(80),
-                          },
-                          children: [
-                            // ✅ رأس الجدول
-                            TableRow(
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.2),
-                              ),
-                              children: [
-                                const Padding(
-                                  padding: EdgeInsets.all(8),
-                                  child: Text(
-                                    'الفترة',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                                ..._days.map((day) => Padding(
-                                  padding: const EdgeInsets.all(8),
-                                  child: Text(
-                                    day,
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                )),
-                              ],
-                            ),
-                            // ✅ صفوف الفترات
-                            for (int p = 0; p < 8; p++) ...[
-                              TableRow(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.all(8),
-                                    child: Text(
-                                      'ف${p + 1}',
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
-                                  ...List.generate(5, (day) {
-                                    final schedule = grid[day][p];
-                                    if (schedule != null) {
-                                      final subjectName = schedule['subjects']?['name'] ?? 'بدون';
-                                      final teacherName = schedule['teachers']?['name'] ?? 'بدون';
-                                      return GestureDetector(
-                                        child: Container(
-                                          padding: const EdgeInsets.all(4),
-                                          margin: const EdgeInsets.all(2),
-                                          decoration: BoxDecoration(
-                                            color: AppColors.primary.withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Text(
-                                                subjectName,
-                                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                              Text(
-                                                teacherName,
-                                                style: const TextStyle(fontSize: 10, color: Colors.grey),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                              IconButton(
-                                                icon: const Icon(Icons.delete, size: 16, color: AppColors.danger),
-                                                onPressed: () => _deleteSchedule(schedule['id']),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    } else {
-                                      return Container(
-                                        padding: const EdgeInsets.all(8),
-                                        margin: const EdgeInsets.all(2),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.cardColor,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: const Text('', textAlign: TextAlign.center),
-                                      );
-                                    }
-                                  }),
-                                ],
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _addSchedule,
-        backgroundColor: AppColors.primary,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-    );
   }
 }
 
@@ -316,14 +368,17 @@ class _AddScheduleDialogState extends State<_AddScheduleDialog> {
     return AlertDialog(
       title: const Text('إضافة حصة جديدة'),
       content: SizedBox(
-        width: 300,
+        width: 320,
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<int>(
                 value: _selectedClassId,
-                decoration: const InputDecoration(labelText: 'الصف'),
+                decoration: const InputDecoration(
+                  labelText: 'الصف',
+                  border: OutlineInputBorder(),
+                ),
                 items: widget.classes.map((c) {
                   return DropdownMenuItem<int>(
                     value: c['id'],
@@ -335,7 +390,10 @@ class _AddScheduleDialogState extends State<_AddScheduleDialog> {
               const SizedBox(height: 12),
               DropdownButtonFormField<int>(
                 value: _selectedTeacherId,
-                decoration: const InputDecoration(labelText: 'المعلم'),
+                decoration: const InputDecoration(
+                  labelText: 'المعلم',
+                  border: OutlineInputBorder(),
+                ),
                 items: widget.teachers.map((t) {
                   return DropdownMenuItem<int>(
                     value: t['id'],
@@ -347,7 +405,10 @@ class _AddScheduleDialogState extends State<_AddScheduleDialog> {
               const SizedBox(height: 12),
               DropdownButtonFormField<int>(
                 value: _selectedSubjectId,
-                decoration: const InputDecoration(labelText: 'المادة'),
+                decoration: const InputDecoration(
+                  labelText: 'المادة',
+                  border: OutlineInputBorder(),
+                ),
                 items: widget.subjects.map((s) {
                   return DropdownMenuItem<int>(
                     value: s['id'],
@@ -359,7 +420,10 @@ class _AddScheduleDialogState extends State<_AddScheduleDialog> {
               const SizedBox(height: 12),
               DropdownButtonFormField<int>(
                 value: _selectedDay,
-                decoration: const InputDecoration(labelText: 'اليوم'),
+                decoration: const InputDecoration(
+                  labelText: 'اليوم',
+                  border: OutlineInputBorder(),
+                ),
                 items: widget.days.asMap().entries.map((entry) {
                   return DropdownMenuItem<int>(
                     value: entry.key,
@@ -371,7 +435,10 @@ class _AddScheduleDialogState extends State<_AddScheduleDialog> {
               const SizedBox(height: 12),
               DropdownButtonFormField<int>(
                 value: _selectedPeriod,
-                decoration: const InputDecoration(labelText: 'الفترة'),
+                decoration: const InputDecoration(
+                  labelText: 'الفترة',
+                  border: OutlineInputBorder(),
+                ),
                 items: widget.periods.map((p) {
                   return DropdownMenuItem<int>(
                     value: p,
