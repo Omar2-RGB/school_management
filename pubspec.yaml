@@ -19,19 +19,19 @@ dependencies:
   sqflite_common_ffi_web: ^0.4.5
   path_provider: ^2.1.6
   path: ^1.9.0
-  pdf: ^3.11.0            # ✅ تم التخفيض
-  printing: ^5.11.0       # ✅ تم التخفيض
+  pdf: ^3.11.0
+  printing: ^5.11.0
   table_calendar: ^3.1.2
   fl_chart: ^0.70.2
   image_picker: ^1.1.0
-  google_fonts: ^6.2.1    # ✅ تم التخفيض سابقاً
+  google_fonts: ^6.2.1
   cross_file: ^0.3.4
   http: ^1.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0    # ✅ تم التخفيض سابقاً
+  flutter_lints: ^4.0.0
   flutter_launcher_icons: ^0.14.3
 
 flutter:
@@ -44,3 +44,11 @@ flutter_launcher_icons:
   adaptive_icon_background: "#1A73E8"
   adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
   remove_alpha_ios: true
+
+# ✅ تجاوز متطلبات SDK للحزم الإشكالية
+dependency_overrides:
+  path_provider: 2.1.2
+  printing: 5.11.0
+  google_fonts: 6.2.1
+  pdf: 3.11.0
+  flutter_lints: 4.0.0
