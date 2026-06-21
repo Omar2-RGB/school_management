@@ -24,14 +24,14 @@ dependencies:
   table_calendar: ^3.1.2
   fl_chart: ^0.70.2
   image_picker: ^1.1.0
-  google_fonts: ^8.1.0
+  google_fonts: ^6.2.1   # ✅ تم التعديل
   cross_file: ^0.3.4
   http: ^1.2.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^4.0.0   # ✅ تم التعديل
+  flutter_lints: ^4.0.0
   flutter_launcher_icons: ^0.14.3
 
 flutter:
