@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:  # يسمح بتشغيل الـ workflow يدوياً
+  workflow_dispatch: 
 
 jobs:
   build:
@@ -24,14 +24,14 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
+          flutter-version: '3.44.2' # 🚀 تم فك الأسر والترقية للنسخة الحديثة
           channel: 'stable'
 
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Clean project
-        run: flutter clean
+      # الترتيب الهندسي الصحيح: التنظيف أولاً، ثم جلب المكتبات
+      - name: Clean and Install dependencies
+        run: |
+          flutter clean
+          flutter pub get
 
       - name: Build APK
         run: flutter build apk --release --no-tree-shake-icons
