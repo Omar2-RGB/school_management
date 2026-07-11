@@ -36,12 +36,10 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/icon/app_icon.png"
-  adaptive_icon_background: "#1A73E8"
-  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  image_path: "assets/icon/app_icon_foreground.png" # ✅ تم التغيير ليقرأ الصورة المتاحة عندك للأجهزة القديمة ولـ iOS
+  adaptive_icon_background: "#1A73E8" # الخلفية الزرقاء الفخمة
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png" # الشعار في المقدمة
   remove_alpha_ios: true
-  
